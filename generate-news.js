@@ -175,6 +175,68 @@ async function getOrCreateTagId(name) {
   return null
 }
 
+// Corregge lo sfondo scuro del banner titolo/navigazione articolo del tema (lo rende chiaro) e
+// traduce in italiano le etichette del modulo commenti, che il tema lascia hardcoded in inglese.
+// Incollato direttamente nel contenuto (non in un widget di sidebar): i widget della sidebar del
+// blog si sono dimostrati instabili (un widget creato via REST si è "staccato" da solo due volte),
+// mentre il contenuto del post renderizza sempre, a prescindere dal layout sidebar/no-sidebar.
+const FIX_BLOCK = `<style>
+body.single-post .tp-breadcrumb-area.tp-custom-breadcrumb-bg { background: #f7f9ff !important; }
+body.single-post .tp-breadcrumb-content,
+body.single-post .tp-breadcrumb-title,
+body.single-post .tp-breadcrumb-list,
+body.single-post .tp-breadcrumb-list span,
+body.single-post .tp-breadcrumb-list a { color: #1f2330 !important; }
+body.single-post .tp-breadcrumb-list a:hover { color: #3b82f6 !important; }
+body.single-post .postbox-details-nevigation-thumb-bg { background: #f1f4fb !important; }
+body.single-post .postbox-details-nevigation-title { color: #1f2330 !important; }
+body.single-post .postbox-details-code { background: #f6f6f9 !important; color: #1f2330 !important; }
+body.single-post .postbox-details-code * { color: #1f2330 !important; }
+body.single-post .postbox-details-form-title { color: #1f2330 !important; }
+body.single-post .postbox-details-quote p { color: #1f2330 !important; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var MAP = {
+    'Leave a Reply': 'Lascia un commento', 'Cancel reply': 'Annulla risposta', 'Comment': 'Commento',
+    'Name': 'Nome', 'Name *': 'Nome *', 'Email': 'Email', 'Email *': 'Email *', 'Website': 'Sito web',
+    'Save my name, email, and website in this browser for the next time I comment.': 'Salva il mio nome, email e sito web in questo browser per il prossimo commento.',
+    'Post Comment': 'Invia commento', 'Submit Comment': 'Invia commento', 'Submit': 'Invia'
+  };
+  function translateComments() {
+    var box = document.querySelector('.comment-respond, #commentform, .comment-form');
+    if (!box) return;
+    var root = box.closest('.comment-respond') || box;
+    root.querySelectorAll('label').forEach(function (label) {
+      var clone = label.cloneNode(true);
+      clone.querySelectorAll('.required, span').forEach(function (s) { s.remove(); });
+      var text = clone.textContent.trim();
+      if (MAP[text]) {
+        var req = label.querySelector('.required');
+        label.textContent = MAP[text] + (req ? ' ' : '');
+        if (req) label.appendChild(req);
+      }
+    });
+    var title = root.querySelector('#reply-title');
+    if (title) {
+      var small = title.querySelector('small');
+      var smallHtml = small ? small.outerHTML : '';
+      var titleText = title.childNodes[0] ? title.childNodes[0].textContent.trim() : '';
+      if (MAP[titleText]) title.innerHTML = MAP[titleText] + ' ' + smallHtml;
+    }
+    var cancelLink = root.querySelector('#cancel-comment-reply-link');
+    if (cancelLink && MAP[cancelLink.textContent.trim()]) cancelLink.textContent = MAP[cancelLink.textContent.trim()];
+    root.querySelectorAll('input[type="submit"], button[type="submit"]').forEach(function (btn) {
+      var v = btn.value || btn.textContent.trim();
+      if (MAP[v]) { if (btn.value) btn.value = MAP[v]; else btn.textContent = MAP[v]; }
+    });
+  }
+  translateComments();
+  var tries = 0;
+  var interval = setInterval(function () { translateComments(); tries++; if (tries > 10) clearInterval(interval); }, 600);
+});
+</script>`
+
 async function publishArticle(article) {
   const categoryId = CATEGORY_IDS[article.category] || CATEGORY_IDS.tools
   const tagIds = []
@@ -193,7 +255,7 @@ async function publishArticle(article) {
       title: `${emoji} ${article.title}`,
       slug,
       excerpt: article.summary || '',
-      content: article.content || '',
+      content: FIX_BLOCK + '\n' + (article.content || ''),
       categories: [CATEGORY_IDS.news_ai, categoryId],
       tags: tagIds,
       status: 'publish'
