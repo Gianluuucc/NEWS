@@ -175,27 +175,12 @@ async function getOrCreateTagId(name) {
   return null
 }
 
-// Corregge lo sfondo scuro del banner titolo/navigazione articolo del tema (lo rende chiaro) e
-// traduce in italiano le etichette del modulo commenti, che il tema lascia hardcoded in inglese.
+// Traduce in italiano le etichette del modulo commenti, che il tema lascia hardcoded in inglese.
+// (Il tema resta nel suo aspetto scuro originale per il banner titolo: richiesto espressamente.)
 // Incollato direttamente nel contenuto (non in un widget di sidebar): i widget della sidebar del
 // blog si sono dimostrati instabili (un widget creato via REST si è "staccato" da solo due volte),
 // mentre il contenuto del post renderizza sempre, a prescindere dal layout sidebar/no-sidebar.
-const FIX_BLOCK = `<style>
-body.single-post .tp-breadcrumb-area.tp-custom-breadcrumb-bg { background: #f7f9ff !important; }
-body.single-post .tp-breadcrumb-content,
-body.single-post .tp-breadcrumb-title,
-body.single-post .tp-breadcrumb-list,
-body.single-post .tp-breadcrumb-list span,
-body.single-post .tp-breadcrumb-list a { color: #1f2330 !important; }
-body.single-post .tp-breadcrumb-list a:hover { color: #3b82f6 !important; }
-body.single-post .postbox-details-nevigation-thumb-bg { background: #f1f4fb !important; }
-body.single-post .postbox-details-nevigation-title { color: #1f2330 !important; }
-body.single-post .postbox-details-code { background: #f6f6f9 !important; color: #1f2330 !important; }
-body.single-post .postbox-details-code * { color: #1f2330 !important; }
-body.single-post .postbox-details-form-title { color: #1f2330 !important; }
-body.single-post .postbox-details-quote p { color: #1f2330 !important; }
-</style>
-<script>
+const FIX_BLOCK = `<script>
 document.addEventListener('DOMContentLoaded', function () {
   var MAP = {
     'Leave a Reply': 'Lascia un commento', 'Cancel reply': 'Annulla risposta', 'Comment': 'Commento',
