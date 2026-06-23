@@ -91,7 +91,13 @@ function buildSlots() {
 }
 
 async function generateOneArticle(slot, existingTitles) {
+  const today = new Date()
+  const todayStr = today.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
   const prompt = `Sei il redattore del blog di GiGaWeb, un'agenzia web italiana (creazione siti, e-commerce, assistenza, e soluzioni AI per le aziende). Scrivi in italiano per i clienti e potenziali clienti dell'agenzia: piccole imprese e professionisti che vogliono capire l'AI e il mondo del web, senza tecnicismi eccessivi.
+
+# Data di oggi
+Oggi e' ${todayStr} (anno ${today.getFullYear()}). Questo e' importante: la tua conoscenza interna ha un limite temporale precedente a oggi, quindi NON basarti sulla tua memoria per capire "cosa e' attuale" o "in che anno siamo" - usa SEMPRE la ricerca web per verificarlo. Non scrivere mai un articolo ambientato o intitolato con un anno passato (es. "nel 2024") come se fosse l'anno corrente: se l'anno e' rilevante nel titolo o nel testo, usa ${today.getFullYear()} o un riferimento generico ("oggi", "quest'anno", "di recente"), MAI un anno diverso da quello corrente.
 
 # Compito
 ${slot.instructions}
@@ -99,7 +105,7 @@ ${slot.instructions}
 # Vincoli importanti
 - IGNORA argomenti equivalenti a questi gia' pubblicati di recente:
 ${existingTitles.map(t => `  - ${t}`).join('\n') || '  (nessuno)'}
-- Mai inventare informazioni: usa solo quanto trovi con la ricerca
+- Mai inventare informazioni: usa solo quanto trovi con la ricerca, verificando che siano effettivamente recenti (controlla le date delle fonti trovate)
 - Articolo ORIGINALE, tono professionale ma accessibile, niente parafrasi pedissequa
 - 400-700 parole, in HTML semplice: SOLO i tag <h2>, <p>, <strong>, <ul>, <li> (NESSUN markdown, NESSUN tag html/head/body, NESSUN ritorno a capo letterale dentro un paragrafo)
 - Scegli 1 sola categoria tra: ${slot.categoryIds.join(', ')}
