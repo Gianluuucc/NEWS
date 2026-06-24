@@ -31,7 +31,7 @@ if (!GEMINI_API_KEY || !WP_USER || !WP_APP_PASSWORD) {
 
 const authHeader = 'Basic ' + Buffer.from(`${WP_USER}:${WP_APP_PASSWORD}`).toString('base64')
 
-async function fetchWithRetry(url, options, retries = 3) {
+async function fetchWithRetry(url, options, retries = 6) {
   let lastRes
   for (let attempt = 1; attempt <= retries; attempt++) {
     const res = await fetch(url, options)
@@ -39,7 +39,7 @@ async function fetchWithRetry(url, options, retries = 3) {
     lastRes = res
     const retriable = res.status === 503 || res.status === 429 || res.status >= 500
     if (!retriable || attempt === retries) return res
-    const wait = attempt * 5000
+    const wait = Math.min(attempt * attempt * 4000, 60000)
     console.log(`  Risposta ${res.status}, ritento in ${wait / 1000}s (tentativo ${attempt}/${retries})...`)
     await new Promise(r => setTimeout(r, wait))
   }
@@ -121,15 +121,23 @@ TAGS: <tag1, tag2, tag3>
 READINGTIME: <numero minuti, es 4>
 CONTENT: <HTML dell'articolo, tutto su un'unica riga continua>`
 
-  const res = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{ google_search: {} }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 4000 }
-    })
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    tools: [{ google_search: {} }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: 4000 }
   })
+
+  // Modello principale, poi fallback su un secondo modello se il primo resta sovraccarico
+  // dopo tutti i ritentativi (errori 503 "high demand" capitano spesso su gemini-2.5-flash).
+  let res = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body
+  })
+  if (!res.ok) {
+    console.log('  Modello principale ancora sovraccarico, provo il modello di riserva...')
+    res = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body
+    })
+  }
   if (!res.ok) throw new Error(`Gemini API error ${res.status}: ${(await res.text()).slice(0, 500)}`)
   const data = await res.json()
   const candidate = data.candidates?.[0]
